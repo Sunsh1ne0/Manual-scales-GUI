@@ -11,8 +11,15 @@ MainScreen:
         BoxLayout:
             orientation: 'horizontal'
             Button:
+                id: connect
                 text: u"Подключить весы"
                 on_press: root.connect_bat(self)
+            
+            Button:
+                id: date_time
+                text: u"Set time"
+                on_press: root.set_time(self)
+                disabled: True
 
             Label:
                 id: isConnectedLabel
@@ -36,8 +43,8 @@ MainScreen:
         size_hint_y: None
         height: 40
 
-        Label:
-            text: u"Дата, время, количество"
+        #Label:
+         #   text: u"Дата, время, количество"
         
         Button:
             text: u"Скачать BAT"
@@ -45,6 +52,7 @@ MainScreen:
 
         Button:
             text: u"Скачать csv"
+            on_press: root.on_click_csv()
 
 <SaveDialog>:
     text_input: text_input
