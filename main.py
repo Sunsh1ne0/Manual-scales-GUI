@@ -19,6 +19,8 @@ import numpy as np
 import datetime
 import serial.tools.list_ports
 
+import pyuac
+
 
 class MainScreen(BoxLayout):
     def __init__(self, **kwargs):
@@ -151,5 +153,18 @@ class SaveDialog(FloatLayout):
     cancel = ObjectProperty(None)
 
 
-if __name__ == '__main__':
+def main():
+
+    #if hasattr(sys, '_MEIPASS'):
+    #    resource_add_path(os.path.join(sys._MEIPASS))
     MyApp().run()
+    #else:
+    #    exit()
+
+
+if __name__ == '__main__':
+    if not pyuac.isUserAdmin():
+        print("Re-launching as admin!")
+        pyuac.runAsAdmin()
+    else:        
+        main()  
