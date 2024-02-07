@@ -50,6 +50,7 @@ class arduino(P2P):
         self.send_request(CMD['File_Info'], bytearray())
         _error_list, byte_list = self.parse_responses(RSP_length['File_Info'], files_amount)
         _messages = []
+        print (byte_list)
         for response in byte_list:
             file = response[0]
             lines = int.from_bytes(response[1:3], 'little', signed=False)

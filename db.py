@@ -8,20 +8,22 @@ import os
 import shutil
 
 
-def create_blank_db(dest_dir, filename):
+def create_blank_db(dest_dir):
+    origin_path = os.getcwd()
     try:
-        shutil.copyfile("blank.b1d", dest_dir + filename)
+        shutil.copyfile("blank.b1d", dest_dir + "Export.b1d")
     except Exception:
-        print(f'Failed to copy to database from "/home/ubuntu/agrobit-b-backend/src/chicken_sorter_main_node/blank.b1d" to {filename}')
+        print(f'Failed to copy database to {dest_dir}')
+    return origin_path
 
 
-def add_file_table(dest_dir, filename, count):
+def add_file_table(dest_dir, count):
     os.chdir(dest_dir)
     try:
-        db = sqlite3.connect(filename, check_same_thread=False)
+        db = sqlite3.connect("Export.b1d", check_same_thread=False)
         cur = db.cursor()
     except Exception:
-        print(f'Failed to connect to database {filename}')
+        print(f'Failed to connect to database "Export.b1d"')
     try:
         exec_str = """
             INSERT INTO Files
@@ -31,16 +33,16 @@ def add_file_table(dest_dir, filename, count):
         cur.execute(exec_str)
         db.commit()
     except Exception:
-        print(f'Failed to commit in database {filename} during adding file table')
+        print(f'Failed to commit in database "Export.b1d" during adding file table')
 
 
-def add_samples_table(dest_dir, filename, id, weight, flag, time_now):
+def add_samples_table(dest_dir, id, weight, flag, time_now):
     os.chdir(dest_dir)
     try:
-        db = sqlite3.connect(filename, check_same_thread=False)
+        db = sqlite3.connect("Export.b1d", check_same_thread=False)
         cur = db.cursor()
     except Exception:
-        print(f'Failed to connect in database {filename}')
+        print(f'Failed to connect in database "Export.b1d"')
     try:
         # time_now = get_julian_datetime(datetime.datetime.now())
         exec_str = """
@@ -51,15 +53,15 @@ def add_samples_table(dest_dir, filename, id, weight, flag, time_now):
         cur.execute(exec_str)
         db.commit()
     except Exception:
-        print(f'Failed to commit in database {filename} during adding samples table')
+        print(f'Failed to commit in database "Export.b1d" during adding samples table')
 
-def add_weightings_table(dest_dir, filename):
+def add_weightings_table(dest_dir):
     os.chdir(dest_dir)
     try:
-        db = sqlite3.connect(filename, check_same_thread=False)
+        db = sqlite3.connect("Export.b1d", check_same_thread=False)
         cur = db.cursor()
     except Exception:
-        print(f'Failed to connect in database {filename}')
+        print(f'Failed to connect in database "Export.b1d"')
     try:
         time_now = get_julian_datetime(datetime.datetime.now())
         exec_str = """
@@ -70,9 +72,9 @@ def add_weightings_table(dest_dir, filename):
         cur.execute(exec_str)
         db.commit()
     except Exception:
-        print(f'Failed to commit in database {filename} during adding weightings table')
+        print(f'Failed to commit in database "Export.b1d" during adding weightings table')
 
-def save_db_in_file(dest_dir, filename):
+def save_db_in_file(dest_dir, filename, origin_path):
     os.chdir(dest_dir)
     info = "{}\n8.0.5.709\nWEIGHINGS".format(datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"))
     try:
@@ -81,11 +83,12 @@ def save_db_in_file(dest_dir, filename):
         pass
     try:
         with zipfile.ZipFile(filename + ".b1e", 'w') as myzip:
-            myzip.write(filename + ".b1d")
+            myzip.write("Export.b1d")
             myzip.writestr('Info.txt', info)
             # os.sync()
+        os.chdir(origin_path)
     except Exception:
-        print(f'Failed to save database {filename + ".b1d"} in ".b1e"')
+        print(f'Failed to save database "Export.b1d" in {filename}.b1e')
         return 
 
 def get_julian_datetime(date):

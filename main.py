@@ -49,35 +49,29 @@ class MainScreen(BoxLayout):
             
             cmd_error, self.files_amount = self.ard.Init()
             print(self.files_amount)
-            error_list, self.files = self.ard.File_Info(self.files_amount)
-            print(f"errors: {error_list}")
-            print(self.files)
+            if (self.files_amount != 0):
+                error_list, self.files = self.ard.File_Info(self.files_amount)
+                print(f"errors: {error_list}")
+                print(self.files)
 
-            for message in self.files:
-                if message['file'] == self.fileID:
-                    lines = message['lines']
-
-            messages, error_list = self.ard.Get_File(self.fileID, lines)
-
-            for message in messages:
-                self.temp_arr.append(message)
-                
-            self.file = pd.DataFrame(self.temp_arr, index=np.linspace(1, lines, lines))
-
-            self.ids.connect.disabled = True
-            self.ids.date_time.disabled = False
-            self.ids.boxText.clear_widgets()
-            vp_height = self.ids.scrollText.viewport_size[1]
-            sv_height = self.ids.scrollText.height
-            for message in self.files:
-                label = SingleFile(message, self.ard)
-                self.ids.boxText.add_widget(label)
-                text_space = Label(text=f"File: {message['file']}, Weightings: {message['lines']}, Time: {datetime.datetime.fromtimestamp(message['unix'])}")
-                label.add_widget(text_space)
-                # self.ids.i.Label.text = "f"
-                # self.ids.i.text = "d"
-                
-                # self.count += 1
+                self.ids.connect.disabled = True
+                self.ids.date_time.disabled = False
+                self.ids.boxText.clear_widgets()
+                vp_height = self.ids.scrollText.viewport_size[1]
+                sv_height = self.ids.scrollText.height
+                for message in self.files:
+                    label = SingleFile(message, self.ard)
+                    self.ids.boxText.add_widget(label)
+                    text_space = Label(text=f"File: {message['file']}, Weightings: {message['lines']}, Time: {datetime.datetime.fromtimestamp(message['unix'])}")
+                    label.add_widget(text_space)
+                    # self.ids.i.Label.text = "f"
+                    # self.ids.i.text = "d"
+                    
+                    # self.count += 1
+            else:
+                self.ids.boxText.clear_widgets()
+                text_space = Label(text=u"Нет файлов")
+                self.ids.boxText.add_widget(text_space)
         except SerialException:
             self.ids.isConnectedLabel.text = u"Весы не обнаружены"
             print("No connection")
@@ -142,14 +136,12 @@ class SingleFile(BoxLayout):
         self.dismiss_popup()
 
     def save_bat(self, path, filename):
-        filename_clean = filename
-        filename = filename + ".b1d"
-        create_blank_db(path, filename)
-        add_weightings_table(path, filename)
-        add_file_table(path, filename, 0)
+        origin_path = create_blank_db(path)
+        add_weightings_table(path)
+        add_file_table(path, 0)
         for data in self.temp_arr:
-            add_samples_table(path, filename, data['WeighingId'], data['Weight'] / 1000.0, data['Flag'], get_julian_datetime(datetime.datetime.fromtimestamp(data['SavedDateTime'])))
-        save_db_in_file(path, filename_clean)
+            add_samples_table(path, data['WeighingId'], data['Weight'] / 1000.0, data['Flag'], get_julian_datetime(datetime.datetime.fromtimestamp(data['SavedDateTime'])))
+        save_db_in_file(path, filename, origin_path)
         self.dismiss_popup()
     
 
