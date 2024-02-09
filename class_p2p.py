@@ -1,8 +1,6 @@
 import serial
 import time
 
-
-
 class P2P():
     def __init__(self, port_name: str, baud_rate: int) -> None:
         self.port = serial.Serial(xonxoff=False, rtscts=False,
