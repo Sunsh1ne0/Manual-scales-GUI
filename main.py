@@ -141,6 +141,9 @@ class SingleFile(BoxLayout):
         self.dismiss_popup()
 
     def save_bat(self, path, filename):
+        symb = "\ "
+        if (path[-1] != symb[0]) or (path[-1] != '/'):
+            path += symb[0]
         origin_path = create_blank_db(path)
         add_weightings_table(path)
         add_file_table(path, 0)
