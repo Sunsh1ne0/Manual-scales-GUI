@@ -1,4 +1,4 @@
-# GUI to work with Handled scales. \n
+# GUI to work with Handled scales.
 
 ## Create the virtual environment:
 ```bash
