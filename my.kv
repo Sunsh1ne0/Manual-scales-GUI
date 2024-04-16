@@ -1,0 +1,88 @@
+#:kivy 1.0.0
+
+
+
+MainScreen:
+
+<MainScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        id: main_layout
+
+        BoxLayout:
+            orientation: 'horizontal'
+            Button:
+                id: connect
+                text: u"Подключить весы"
+                on_press: root.connect_bat(self)
+            
+            Button:
+                id: date_time
+                text: u"Установить время"
+                on_press: root.set_time(self)
+                disabled: True
+
+            Label:
+                id: isConnectedLabel
+                text: u"Весы не подключены"
+
+        BoxLayout:
+            orientation: 'horizontal'
+            id: boxlay
+
+            ScrollView:
+                id: scrollText
+                BoxLayout:
+                    id: boxText
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: self.minimum_height  # let the GridLayout set its own height as needeed
+
+
+<SingleFile>:
+    BoxLayout:
+        orientation: "horizontal"
+        size_hint_y: None
+        height: 40
+
+        #Label:
+         #   text: u"Дата, время, количество"
+        
+        Button:
+            text: u"Скачать BAT"
+            on_press: root.on_click_bat()
+
+        Button:
+            text: u"Скачать csv"
+            on_press: root.on_click_csv()
+
+        Button:
+            text: u"Удалить"
+            on_press: root.delete_file()
+
+<SaveDialog>:
+    text_input: text_input
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        FileChooserListView:
+            id: filechooser
+            on_selection: text_input.text = self.selection and self.selection[0] or ''
+
+        TextInput:
+            id: text_input
+            size_hint_y: None
+            height: 30
+            multiline: False
+
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            Button:
+                text: "Отменить"
+                on_release: root.cancel()
+
+            Button:
+                text: "Сохранить"
+                on_release: root.save(filechooser.path, text_input.text)

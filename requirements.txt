@@ -1,0 +1,5 @@
+kivy
+pandas
+numpy
+pyserial
+pyuac
