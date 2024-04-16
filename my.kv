@@ -7,6 +7,7 @@ MainScreen:
 <MainScreen>:
     BoxLayout:
         orientation: 'vertical'
+        id: main_layout
 
         BoxLayout:
             orientation: 'horizontal'
@@ -17,7 +18,7 @@ MainScreen:
             
             Button:
                 id: date_time
-                text: u"Set time"
+                text: u"Установить время"
                 on_press: root.set_time(self)
                 disabled: True
 
@@ -27,6 +28,7 @@ MainScreen:
 
         BoxLayout:
             orientation: 'horizontal'
+            id: boxlay
 
             ScrollView:
                 id: scrollText
@@ -53,6 +55,10 @@ MainScreen:
         Button:
             text: u"Скачать csv"
             on_press: root.on_click_csv()
+
+        Button:
+            text: u"Удалить"
+            on_press: root.delete_file()
 
 <SaveDialog>:
     text_input: text_input

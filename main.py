@@ -18,6 +18,7 @@ import pandas as pd
 import numpy as np
 import datetime
 import serial.tools.list_ports
+import time
 
 from zoneinfo import ZoneInfo
 
@@ -35,6 +36,7 @@ class MainScreen(BoxLayout):
         self.file = None
         self.fileID = 5
         self.port = None
+        self._block_status = False
 
         self.ard = None
        
@@ -48,42 +50,72 @@ class MainScreen(BoxLayout):
             if self.port == None:
                 raise SerialException
             self.ard = arduino(self.port, 115200)
-            self.ids.isConnectedLabel.text = u"Весы подключены"
+            
             # self.temporary = self.ard
             
-            cmd_error, self.files_amount = self.ard.Init()
-            print(self.files_amount)
-            if (self.files_amount != 0):
-                error_list, self.files = self.ard.File_Info(self.files_amount)
-                print(f"errors: {error_list}")
-                print(self.files)
+            cmd_error, self.files_amount, self._block_status = self.ard.Init()
+            # print(self.files_amount)
+            # print(self._block_status)
+            # print(cmd_error)
+            if self._block_status:
+                grid = BoxLayout()
+                self.ids.boxlay.clear_widgets()
+                self.ids.isConnectedLabel.text = u"Необходима разблокировка"
+                self.ids.connect.disabled = True
+                self.ids.boxlay.add_widget(grid)
+                text_space = TextInput(text=f"")
+                text_space.hint_text = u"Введите пароль"
+                grid.add_widget(text_space)
+                unblock_btn = Button(text=u"Разблокировать")
+                # print(text_space.text)
+                unblock_btn.bind(on_press = lambda x: self.unblock_cmd(text_space.text))
+                grid.add_widget(unblock_btn)
+            else:
 
+                self.ids.isConnectedLabel.text = u"Весы подключены"
                 self.ids.connect.disabled = True
                 self.ids.date_time.disabled = False
-                self.ids.boxText.clear_widgets()
-                vp_height = self.ids.scrollText.viewport_size[1]
-                sv_height = self.ids.scrollText.height
-                for message in self.files:
-                    label = SingleFile(message, self.ard)
-                    self.ids.boxText.add_widget(label)
-                    text_space = Label(text=f"File: {message['file']}, Weightings: {message['lines']}, Time: {datetime.datetime.fromtimestamp(message['unix'], tz=ZoneInfo("Europe/London"))}")
-                    label.add_widget(text_space)
-            else:
-                self.ids.boxText.padding = 20
-                self.ids.boxText.clear_widgets()
-                text_space = Label(text=u"Нет файлов")
-                self.ids.boxText.add_widget(text_space)
+                
+                if (self.files_amount != 0):
+                    error_list, self.files = self.ard.File_Info(self.files_amount)
+                    print(f"errors: {error_list}")
+                    print(self.files)
+                    self.ids.boxText.clear_widgets()
+                    vp_height = self.ids.scrollText.viewport_size[1]
+                    sv_height = self.ids.scrollText.height
+                    for message in self.files:
+                        label = SingleFile(message, self.ard, self)
+                        self.ids.boxText.add_widget(label)
+                        text_space = Label(text=f"File: {message['file']}, Weightings: {message['lines'] - 1}, Time: {datetime.datetime.fromtimestamp(message['unix'])}") #, tz=ZoneInfo("Europe/London")
+                        # text_space = Label(text=f"File: {message['file']}")
+                        label.add_widget(text_space)
+                else:
+                    self.ids.boxText.padding = 20
+                    self.ids.boxText.clear_widgets()
+                    text_space = Label(text=u"Нет файлов")
+                    self.ids.boxlay.add_widget(text_space)
         except SerialException:
             self.ids.isConnectedLabel.text = u"Весы не обнаружены"
-            print("No connection")
+            # print(u"N")
+            # self.connect_bat()
 
         
+    def unblock_cmd(self, pwd):
+        try:
+            int(pwd)
+        except:
+            pwd = 0000
+        print(int(pwd))
+        _, st = self.ard.Unblock_Scales(int(pwd))
+        if (st):
+            self._block_status = True
+            self.ids.boxlay.clear_widgets()
+            self.ids.boxlay.add_widget(Label(text=u"Весы успешно разблокированы"))
+
 
     def set_time(self, instance):
         print(self.ard.Set_Time())
-        None
-
-
+        
 
 class MyApp(App):
     def build(self):
@@ -91,13 +123,14 @@ class MyApp(App):
 
 
 class SingleFile(BoxLayout):
-    def __init__(self, data, arduino, **kwargs):
+    def __init__(self, data, arduino, main_window, **kwargs):
         super(SingleFile, self).__init__(**kwargs)
         self.height = 50
         self.size_hint = (1, None)
         self.temp_arr = []
         self.arduino = arduino
         self.temp = data
+        self.main_window = main_window
 
 
 
@@ -117,12 +150,14 @@ class SingleFile(BoxLayout):
     def on_click_csv(self):
         messages, error_list = self.arduino.Get_File(self.temp['file'], self.temp['lines'])
 
+        print(messages)
+
         self.temp_arr = []
 
         for message in messages:
             self.temp_arr.append(message)
                 
-        self.data = pd.DataFrame(self.temp_arr, index=np.linspace(1, self.temp['lines'], self.temp['lines']))
+        self.data = pd.DataFrame(self.temp_arr, index=np.linspace(1, self.temp['lines'] - 1, self.temp['lines'] - 1))
         self.data = self.data.reset_index(drop=True)
         self.data["Weight"] = self.data["Weight"].apply(lambda x: x / 1000)
         self.data["SavedDateTime"] = self.data["SavedDateTime"].apply(lambda x: datetime.datetime.fromtimestamp(x, tz=ZoneInfo("Europe/London")))
@@ -131,6 +166,11 @@ class SingleFile(BoxLayout):
         self._popup = Popup(title="Сохранить CSV", content=content,
                             size_hint=(0.9, 0.9))
         self._popup.open()
+
+    def delete_file(self):
+        self.arduino.Delete_File(self.temp['file'])
+        self.disabled = True
+        self.main_window.ids.boxText.remove_widget(self)
 
     def dismiss_popup(self):
         self._popup.dismiss()

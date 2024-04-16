@@ -84,6 +84,7 @@ def save_db_in_file(dest_dir, filename, origin_path):
     try:
         with zipfile.ZipFile(filename + ".b1e", 'w') as myzip:
             myzip.write("Export.b1d")
+            os.remove("Export.b1d")
             myzip.writestr('Info.txt', info)
             # os.sync()
         os.chdir(origin_path)
