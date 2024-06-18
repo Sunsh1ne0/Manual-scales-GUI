@@ -20,10 +20,14 @@ import datetime
 import serial.tools.list_ports
 import time
 
-from zoneinfo import ZoneInfo
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    from backports.zoneinfo  import ZoneInfo
 
 import pyuac
 
+TIMEZONE = ZoneInfo("Iceland")
 
 class MainScreen(BoxLayout):
     def __init__(self, **kwargs):
@@ -86,7 +90,9 @@ class MainScreen(BoxLayout):
                     for message in self.files:
                         label = SingleFile(message, self.ard, self)
                         self.ids.boxText.add_widget(label)
-                        text_space = Label(text=f"File: {message['file']}, Weightings: {message['lines'] - 1}, Time: {datetime.datetime.fromtimestamp(message['unix'])}") #, tz=ZoneInfo("Europe/London")
+                        # text_space = Label(text=f"File: {message['file']}, Weightings: {message['lines'] - 2}, Time: {datetime.datetime.fromtimestamp(message['unix'], tz=ZoneInfo("Atlantic/Reykjavik"))}") #, tz=ZoneInfo("Europe/London")
+                        text_space = Label(text=f"File: {message['name']}, Weightings: {message['lines'] - 2}, Time: {datetime.datetime.fromtimestamp(message['unix']).astimezone(TIMEZONE)}") #, tz=ZoneInfo("Europe/London")
+
                         # text_space = Label(text=f"File: {message['file']}")
                         label.add_widget(text_space)
                 else:
@@ -157,10 +163,11 @@ class SingleFile(BoxLayout):
         for message in messages:
             self.temp_arr.append(message)
                 
-        self.data = pd.DataFrame(self.temp_arr, index=np.linspace(1, self.temp['lines'] - 1, self.temp['lines'] - 1))
+        self.data = pd.DataFrame(self.temp_arr, index=np.linspace(1, self.temp['lines'] - 2, self.temp['lines'] - 2))
         self.data = self.data.reset_index(drop=True)
         self.data["Weight"] = self.data["Weight"].apply(lambda x: x / 1000)
-        self.data["SavedDateTime"] = self.data["SavedDateTime"].apply(lambda x: datetime.datetime.fromtimestamp(x, tz=ZoneInfo("Europe/London")))
+        self.data["SavedDateTime"] = self.data["SavedDateTime"].apply(lambda x: datetime.datetime.fromtimestamp(x).astimezone(TIMEZONE))
+        
         self.data.drop(columns='ID', inplace=True)
         content = SaveDialog(save=self.save_csv, cancel=self.dismiss_popup)
         self._popup = Popup(title="Сохранить CSV", content=content,
@@ -188,7 +195,7 @@ class SingleFile(BoxLayout):
         add_weightings_table(path)
         add_file_table(path, 0)
         for data in self.temp_arr:
-            add_samples_table(path, data['WeighingId'], data['Weight'] / 1000.0, data['Flag'], get_julian_datetime(datetime.datetime.fromtimestamp(data['SavedDateTime'], tz=ZoneInfo("Europe/London"))))
+            add_samples_table(path, data['WeighingId'], data['Weight'] / 1000.0, data['Flag'], get_julian_datetime(datetime.datetime.fromtimestamp(data['SavedDateTime']).astimezone(TIMEZONE)))
         save_db_in_file(path, filename, origin_path)
         self.dismiss_popup()
     

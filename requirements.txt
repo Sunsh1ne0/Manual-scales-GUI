@@ -3,3 +3,5 @@ pandas
 numpy
 pyserial
 pyuac
+# backports.zoneinfo
+tzdata

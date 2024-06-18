@@ -1,6 +1,6 @@
 import time
 import datetime
-
+import struct
 from class_p2p import P2P
 
 CMD = {'Init': 0X00,
@@ -20,26 +20,12 @@ CMD_length = {'Init': 0,  # инициализирует обмен
               'Unblock_Scales': 4}
 
 RSP_length = {'Init': 1 + 1,  # получет количество файлов
-              'File_Info': 1 + 2 + 4,  # получает название, кол-во записей, последний UNIX (*files_amount)
+              'File_Info': 1 + 2 + 4 + 6,  # получает название, кол-во записей, последний UNIX (*files_amount)
               'Get_File': 2 + 2 + 4,  # получает номер, вес и UNIX (*counter)
               'Get_Sample': 2 + 2 + 4,  # получает номер, вес и UNIX
               'Set_Time': 0,
               'Delete_File': 0,
               'Unblock_Scales': 1}  # получает подтверждение
-
-# ard = P2P('COM13', 115200)
-# ard.open_com_port()
-# time.sleep(3)
-# print('Ready')
-
-
-# def Connect(port_name: str, baud_rate: int):
-#     _ard = P2P(port_name, baud_rate)
-#     _ard.open_com_port()
-#     time.sleep(3)
-#     print('Ready')
-#     return _ard
-
 
 class arduino(P2P):
     def Init(self):
@@ -61,13 +47,12 @@ class arduino(P2P):
         self.send_request(CMD['File_Info'], bytearray())
         _error_list, byte_list = self.parse_responses(RSP_length['File_Info'], files_amount)
         _messages = []
-        print (byte_list)
         for response in byte_list:
             file = response[0]
             lines = int.from_bytes(response[1:3], 'little', signed=False)
             unix = int.from_bytes(response[3:7], 'little', signed=False)
-            _message = {'file': file, 'lines': lines, 'unix': unix}
-            print(_message)
+            name = response[7:13].decode('utf-8')
+            _message = {'file': file, 'lines': lines, 'unix': unix, 'name': name}
             _messages.append(_message)
         print(_error_list)
         return _error_list, _messages
@@ -85,6 +70,8 @@ class arduino(P2P):
             if (count == 0):
                 medium_limit = data
                 heavy_limit = unix
+            elif count == 1:
+                None
             else:
                 id = 1 if (data < 0) else 0
                 flag = 1 if abs(data) < medium_limit else (2 if abs(data) < heavy_limit else 3)

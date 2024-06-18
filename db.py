@@ -9,7 +9,7 @@ import shutil
 
 
 def create_blank_db(dest_dir):
-    origin_path = os.getcwd()
+    origin_path = os.path.dirname(os.path.realpath(__file__))
     try:
         shutil.copyfile("blank.b1d", dest_dir + "Export.b1d")
     except Exception:
@@ -84,9 +84,10 @@ def save_db_in_file(dest_dir, filename, origin_path):
     try:
         with zipfile.ZipFile(filename + ".b1e", 'w') as myzip:
             myzip.write("Export.b1d")
-            os.remove("Export.b1d")
             myzip.writestr('Info.txt', info)
-            # os.sync()
+            os.sync()
+        if os.path.exists("Export.b1d"):
+            print(os.remove("Export.b1d"))
         os.chdir(origin_path)
     except Exception:
         print(f'Failed to save database "Export.b1d" in {filename}.b1e')
