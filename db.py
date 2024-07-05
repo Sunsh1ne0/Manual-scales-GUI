@@ -6,6 +6,7 @@ import io
 from io import StringIO
 import os
 import shutil
+import contextlib
 
 
 def create_blank_db(dest_dir):
@@ -17,62 +18,65 @@ def create_blank_db(dest_dir):
     return origin_path
 
 
-def add_file_table(dest_dir, count):
+def add_file_table(dest_dir, count, filename):
     os.chdir(dest_dir)
-    try:
-        db = sqlite3.connect("Export.b1d", check_same_thread=False)
-        cur = db.cursor()
-    except Exception:
-        print(f'Failed to connect to database "Export.b1d"')
-    try:
-        exec_str = """
-            INSERT INTO Files
-            (FileId, ScaleConfigId, Name, Note, EnableMoreBirds, NumberOfBirds, WeightSortingMode, LowLimit, HighLimit, SavingMode, "Filter", StabilizationTime, StabilizationRange, MinimumWeight)
-            VALUES(1, 1, 'AGROBIT', '', 0, {}, 0, 1.0, 2.0, 2, 1.0, 0.5, 1.0, 0.1);
-        """.format(count)
-        cur.execute(exec_str)
-        db.commit()
-    except Exception:
-        print(f'Failed to commit in database "Export.b1d" during adding file table')
+    with contextlib.closing(sqlite3.connect("Export.b1d", check_same_thread=False)) as db:
+        try:
+            # db = sqlite3.connect("Export.b1d", check_same_thread=False)
+            cur = db.cursor()
+        except Exception:
+            print(f'Failed to connect to database "Export.b1d"')
+        try:
+            exec_str = """
+                INSERT INTO Files
+                (FileId, ScaleConfigId, Name, Note, EnableMoreBirds, NumberOfBirds, WeightSortingMode, LowLimit, HighLimit, SavingMode, "Filter", StabilizationTime, StabilizationRange, MinimumWeight)
+                VALUES(1, 1, '{}', '', 0, {}, 0, 1.0, 2.0, 2, 1.0, 0.5, 1.0, 0.1);
+            """.format(str(filename).replace(" ", "_"), count)
+            cur.execute(exec_str)
+            db.commit()
+        except Exception:
+            print(f'Failed to commit in database "Export.b1d" during adding file table')
 
 
 def add_samples_table(dest_dir, id, weight, flag, time_now):
     os.chdir(dest_dir)
-    try:
-        db = sqlite3.connect("Export.b1d", check_same_thread=False)
-        cur = db.cursor()
-    except Exception:
-        print(f'Failed to connect in database "Export.b1d"')
-    try:
-        # time_now = get_julian_datetime(datetime.datetime.now())
-        exec_str = """
-            INSERT INTO Samples
-            (WeighingId, Weight, Flag, SavedDateTime)
-            VALUES(1, {}, {}, {});
-        """.format(weight, flag, time_now)
-        cur.execute(exec_str)
-        db.commit()
-    except Exception:
-        print(f'Failed to commit in database "Export.b1d" during adding samples table')
+    with contextlib.closing(sqlite3.connect("Export.b1d", check_same_thread=False)) as db:
+        try:
+            # db = sqlite3.connect("Export.b1d", check_same_thread=False)
+            cur = db.cursor()
+        except Exception:
+            print(f'Failed to connect in database "Export.b1d"')
+        try:
+            # time_now = get_julian_datetime(datetime.datetime.now())
+            exec_str = """
+                INSERT INTO Samples
+                (WeighingId, Weight, Flag, SavedDateTime)
+                VALUES(1, {}, {}, {});
+            """.format(weight, flag, time_now)
+            cur.execute(exec_str)
+            db.commit()
+        except Exception:
+            print(f'Failed to commit in database "Export.b1d" during adding samples table')
 
 def add_weightings_table(dest_dir):
     os.chdir(dest_dir)
-    try:
-        db = sqlite3.connect("Export.b1d", check_same_thread=False)
-        cur = db.cursor()
-    except Exception:
-        print(f'Failed to connect in database "Export.b1d"')
-    try:
-        time_now = get_julian_datetime(datetime.datetime.now())
-        exec_str = """
-            INSERT INTO Weighings
-            (WeighingId, FileId, ScaleConfigId, ResultType, RecordSource, DownloadedDateTime, Note, SwMajorVersion, SwMinorVersion, SwBuildVersion, SamplesMinDateTime, SamplesMaxDateTime)
-            VALUES(1, 1, 1, 0, 0, {}, '', 8, 0, 709, {}, {});
-        """.format(time_now, time_now, time_now)
-        cur.execute(exec_str)
-        db.commit()
-    except Exception:
-        print(f'Failed to commit in database "Export.b1d" during adding weightings table')
+    with contextlib.closing(sqlite3.connect("Export.b1d", check_same_thread=False)) as db:
+        try:
+            # db = sqlite3.connect("Export.b1d", check_same_thread=False)
+            cur = db.cursor()
+        except Exception:
+            print(f'Failed to connect in database "Export.b1d"')
+        try:
+            time_now = get_julian_datetime(datetime.datetime.now())
+            exec_str = """
+                INSERT INTO Weighings
+                (WeighingId, FileId, ScaleConfigId, ResultType, RecordSource, DownloadedDateTime, Note, SwMajorVersion, SwMinorVersion, SwBuildVersion, SamplesMinDateTime, SamplesMaxDateTime)
+                VALUES(1, 1, 1, 0, 0, {}, '', 8, 0, 709, {}, {});
+            """.format(time_now, time_now, time_now)
+            cur.execute(exec_str)
+            db.commit()
+        except Exception:
+            print(f'Failed to commit in database "Export.b1d" during adding weightings table')
 
 def save_db_in_file(dest_dir, filename, origin_path):
     os.chdir(dest_dir)
@@ -82,16 +86,20 @@ def save_db_in_file(dest_dir, filename, origin_path):
     except Exception:
         pass
     try:
+
         with zipfile.ZipFile(filename + ".b1e", 'w') as myzip:
             myzip.write("Export.b1d")
             myzip.writestr('Info.txt', info)
-            os.sync()
-        if os.path.exists("Export.b1d"):
-            print(os.remove("Export.b1d"))
-        os.chdir(origin_path)
+            # os.sync()
+        if os.path.isfile("Export.b1d"):
+            print('Successfully saved database in {}.b1e'.format(filename))
+            os.remove("Export.b1d")
     except Exception:
         print(f'Failed to save database "Export.b1d" in {filename}.b1e')
         return 
+    finally:
+        os.chdir(origin_path)
+
 
 def get_julian_datetime(date):
     """
