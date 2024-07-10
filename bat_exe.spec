@@ -5,7 +5,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('my.kv', '.'), ('blank.b1d', '.'), ('Terminal_class.py', '.'), ('class_p2p.py', '.'), ('db.py', '.'), ('Terminal_class.py', '.')],
+    datas=[('my.kv', '.'), ('blank.b1d', '.'), ('Terminal_class.py', '.'), ('class_p2p.py', '.'), ('db.py', '.'), ('Terminal_class.py', '.'), ('Agrobit_logo.ico', '.')],
     hiddenimports=['win32timezone'],
     hookspath=[],
     hooksconfig={},

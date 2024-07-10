@@ -111,7 +111,7 @@ class arduino(P2P):
                 message = {'ID': count + 1, 'WeighingId': id, 'Weight': abs(data), 'Flag': flag, 'SavedDateTime': unix}
                 _messages.append(message)
 
-        a = list(range(2, lines + 1))
+        a = list(range(3, lines + 1))
         counts = []
         for message in _messages:
             counts.append(message['ID'])
