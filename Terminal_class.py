@@ -1,6 +1,6 @@
 import time
 import datetime
-
+import struct
 from class_p2p import P2P
 
 CMD = {'Init': 0X00,
@@ -20,28 +20,47 @@ CMD_length = {'Init': 0,  # инициализирует обмен
               'Unblock_Scales': 4}
 
 RSP_length = {'Init': 1 + 1,  # получет количество файлов
-              'File_Info': 1 + 2 + 4,  # получает название, кол-во записей, последний UNIX (*files_amount)
+              'File_Info': 1 + 2 + 4 + 6,  # получает название, кол-во записей, последний UNIX (*files_amount)
               'Get_File': 2 + 2 + 4,  # получает номер, вес и UNIX (*counter)
               'Get_Sample': 2 + 2 + 4,  # получает номер, вес и UNIX
               'Set_Time': 0,
               'Delete_File': 0,
               'Unblock_Scales': 1}  # получает подтверждение
 
-# ard = P2P('COM13', 115200)
-# ard.open_com_port()
-# time.sleep(3)
-# print('Ready')
-
-
-# def Connect(port_name: str, baud_rate: int):
-#     _ard = P2P(port_name, baud_rate)
-#     _ard.open_com_port()
-#     time.sleep(3)
-#     print('Ready')
-#     return _ard
-
-
 class arduino(P2P):
+    """
+    A class used to represent an Arduino device connected via a serial port.
+
+    ...
+
+    Attributes
+    ----------
+    P2P : P2P
+        An instance of the P2P class representing the communication protocol.
+
+    Methods
+    -------
+    Init():
+        Initializes the communication with the Arduino and retrieves the number of files and the block status.
+
+    File_Info(files_amount: int):
+        Retrieves information about the files on the Arduino, such as file number, number of lines, last UNIX timestamp, and file name.
+
+    Get_File(file: int, lines: int):
+        Retrieves data from a specific file on the Arduino, including the measurement ID, weighing ID, weight, flag, and saved date and time.
+
+    Get_Sample(file, sample):
+        Retrieves a specific sample from a specific file on the Arduino.
+
+    Set_Time():
+        Sets the current date and time on the Arduino.
+
+    Delete_File(file):
+        Deletes a specific file from the Arduino.
+
+    Unblock_Scales(pwd):
+        Unblocks the Arduino scales by providing a password.
+    """
     def Init(self):
         self.open_com_port()
         time.sleep(2)
@@ -61,13 +80,12 @@ class arduino(P2P):
         self.send_request(CMD['File_Info'], bytearray())
         _error_list, byte_list = self.parse_responses(RSP_length['File_Info'], files_amount)
         _messages = []
-        print (byte_list)
         for response in byte_list:
             file = response[0]
             lines = int.from_bytes(response[1:3], 'little', signed=False)
             unix = int.from_bytes(response[3:7], 'little', signed=False)
-            _message = {'file': file, 'lines': lines, 'unix': unix}
-            print(_message)
+            name = response[7:13].decode('utf-8')
+            _message = {'file': file, 'lines': lines, 'unix': unix, 'name': name}
             _messages.append(_message)
         print(_error_list)
         return _error_list, _messages
@@ -85,14 +103,15 @@ class arduino(P2P):
             if (count == 0):
                 medium_limit = data
                 heavy_limit = unix
+            elif count == 1:
+                None
             else:
                 id = 1 if (data < 0) else 0
                 flag = 1 if abs(data) < medium_limit else (2 if abs(data) < heavy_limit else 3)
                 message = {'ID': count + 1, 'WeighingId': id, 'Weight': abs(data), 'Flag': flag, 'SavedDateTime': unix}
-                # print(message)
                 _messages.append(message)
 
-        a = list(range(2, lines + 1))
+        a = list(range(3, lines + 1))
         counts = []
         for message in _messages:
             counts.append(message['ID'])
@@ -105,11 +124,9 @@ class arduino(P2P):
             print(f"did't get {len(lost)} messages, from {lines}")
         else:
             print("All files successfully received")
-        # print(_messages)
-
         return _messages, lost
 
-    def Get_Sample(self, file, sample):
+    def Get_Sample(self, file: int, sample: int):
         request = bytearray([file])
         request += sample.to_bytes(2, 'little', signed=False)
         self.send_request(CMD['Get_Sample'], request)
@@ -123,20 +140,10 @@ class arduino(P2P):
         _message = {'ID': count + 1, 'WeighingId': id, 'Weight': abs(data), 'Flag': flag, 'SavedDateTime': unix}
         if unix == 0 and _cmd_error == 0:
             print("row exceeds the number of measurement")
-            # _cmd_error = 1
-        # print(_message)
         return _cmd_error, _message
 
     def Set_Time(self):
         _date = datetime.datetime.now()
-        # print(_date)
-        # print(_date.year)
-        # print(_date.month)
-        # print(_date.day)
-        # print(_date.weekday)
-        # print(_date.hour)
-        # print(_date.minute)
-        # print(_date.second)
         year = _date.year - 2000
 
         request = bytearray()
@@ -154,7 +161,7 @@ class arduino(P2P):
 
         return _cmd_error
 
-    def Delete_File(self, file):
+    def Delete_File(self, file: int):
         request = bytearray([file])
 
         self.send_request(CMD['Delete_File'], request)
@@ -162,7 +169,7 @@ class arduino(P2P):
 
         return _cmd_error
     
-    def Unblock_Scales(self, pwd):
+    def Unblock_Scales(self, pwd: int):
         request = bytearray()
         request += pwd.to_bytes(4, 'little', signed=True)
 
@@ -174,23 +181,3 @@ class arduino(P2P):
         unblock_status = False if (unblock_status == 0) else True
 
         return _cmd_error, unblock_status
-
-# ard = arduino('COM13', 115200)
-
-# print(ard.Init())
-
-
-# cmd_error, files_amount = ard.Init()
-# ard.open_com_port()
-# print(files_amount)
-# error_list, messages = ard.File_Info(files_amount)
-# print(f"errors: {error_list}")
-
-# ard.Get_File(1, 370)
-
-# cmd_error, message = Get_Sample(2, 999)
-# print(f"error: {cmd_error}, message: {message}")
-
-# cmd_error = ard.Set_Time()
-# print(cmd_error)
-

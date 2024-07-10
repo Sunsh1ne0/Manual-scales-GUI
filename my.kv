@@ -49,10 +49,12 @@ MainScreen:
          #   text: u"Дата, время, количество"
         
         Button:
+            id: saveBtnBAT
             text: u"Скачать BAT"
             on_press: root.on_click_bat()
 
         Button:
+            id: saveBtnCSV
             text: u"Скачать csv"
             on_press: root.on_click_csv()
 
@@ -61,7 +63,6 @@ MainScreen:
             on_press: root.delete_file()
 
 <SaveDialog>:
-    text_input: text_input
     BoxLayout:
         size: root.size
         pos: root.pos

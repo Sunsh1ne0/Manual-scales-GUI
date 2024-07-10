@@ -19,11 +19,17 @@ import numpy as np
 import datetime
 import serial.tools.list_ports
 import time
+import os
+# from datetime import datetime
 
-from zoneinfo import ZoneInfo
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    from backports.zoneinfo  import ZoneInfo
 
 import pyuac
 
+TIMEZONE = ZoneInfo("Iceland")
 
 class MainScreen(BoxLayout):
     def __init__(self, **kwargs):
@@ -86,7 +92,9 @@ class MainScreen(BoxLayout):
                     for message in self.files:
                         label = SingleFile(message, self.ard, self)
                         self.ids.boxText.add_widget(label)
-                        text_space = Label(text=f"File: {message['file']}, Weightings: {message['lines'] - 1}, Time: {datetime.datetime.fromtimestamp(message['unix'])}") #, tz=ZoneInfo("Europe/London")
+                        # text_space = Label(text=f"File: {message['file']}, Weightings: {message['lines'] - 2}, Time: {datetime.datetime.fromtimestamp(message['unix'], tz=ZoneInfo("Atlantic/Reykjavik"))}") #, tz=ZoneInfo("Europe/London")
+                        text_space = Label(text=f"File: {message['name']}, Weightings: {message['lines'] - 2}, Time: {datetime.datetime.fromtimestamp(message['unix']).astimezone(TIMEZONE)}") #, tz=ZoneInfo("Europe/London")
+
                         # text_space = Label(text=f"File: {message['file']}")
                         label.add_widget(text_space)
                 else:
@@ -119,6 +127,8 @@ class MainScreen(BoxLayout):
 
 class MyApp(App):
     def build(self):
+        self.title = "Agrobit Saver"
+        self.icon = 'Agrobit_logo.ico'
         return MainScreen()
 
 
@@ -135,6 +145,7 @@ class SingleFile(BoxLayout):
 
 
     def on_click_bat(self):
+        self.ids.saveBtnBAT.disabled = True
         messages, error_list = self.arduino.Get_File(self.temp['file'], self.temp['lines'])
         
         self.temp_arr = []
@@ -142,30 +153,56 @@ class SingleFile(BoxLayout):
         for message in messages:
             self.temp_arr.append(message)
 
-        content = SaveDialog(save=self.save_bat, cancel=self.dismiss_popup)
-        self._popup = Popup(title="Сохранить BAT", content=content,
-                            size_hint=(0.9, 0.9))
-        self._popup.open()
+        directory = os.getcwd()
+
+        directory += '/DataFiles/BAT/'
+        directory += datetime.datetime.today().strftime('%Y-%m-%d')
+
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        self.save_bat(directory, '')
+
+        # content = SaveDialog(save=self.save_bat, text_input = self.temp['name'], cancel=self.dismiss_popup)
+        # content.ids.text_input.hint_text = self.temp['name']
+
+        # self._popup = Popup(title="Сохранить BAT", content=content,
+        #                     size_hint=(0.9, 0.9))
+        # self._popup.open()
 
     def on_click_csv(self):
-        messages, error_list = self.arduino.Get_File(self.temp['file'], self.temp['lines'])
+        self.ids.saveBtnCSV.disabled = True
 
-        print(messages)
+        messages, error_list = self.arduino.Get_File(self.temp['file'], self.temp['lines'])
 
         self.temp_arr = []
 
         for message in messages:
             self.temp_arr.append(message)
                 
-        self.data = pd.DataFrame(self.temp_arr, index=np.linspace(1, self.temp['lines'] - 1, self.temp['lines'] - 1))
+        self.data = pd.DataFrame(self.temp_arr, index=np.linspace(1, self.temp['lines'] - 2, self.temp['lines'] - 2))
         self.data = self.data.reset_index(drop=True)
         self.data["Weight"] = self.data["Weight"].apply(lambda x: x / 1000)
-        self.data["SavedDateTime"] = self.data["SavedDateTime"].apply(lambda x: datetime.datetime.fromtimestamp(x, tz=ZoneInfo("Europe/London")))
+        self.data["SavedDateTime"] = self.data["SavedDateTime"].apply(lambda x: datetime.datetime.fromtimestamp(x).astimezone(TIMEZONE))
+        
         self.data.drop(columns='ID', inplace=True)
-        content = SaveDialog(save=self.save_csv, cancel=self.dismiss_popup)
-        self._popup = Popup(title="Сохранить CSV", content=content,
-                            size_hint=(0.9, 0.9))
-        self._popup.open()
+
+        directory = os.getcwd()
+
+        directory += '/DataFiles/csv/'
+        directory += datetime.datetime.today().strftime('%Y-%m-%d')
+
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        self.save_csv(directory, '')
+
+        # content = SaveDialog(save=self.save_csv, cancel=self.dismiss_popup)
+        # content.ids.text_input.hint_text = self.temp['name']
+        # # content.ids.text_input.text = self.temp['name']
+        # self._popup = Popup(title="Сохранить CSV", content=content,
+        #                     size_hint=(0.9, 0.9))
+        # self._popup.open()
 
     def delete_file(self):
         self.arduino.Delete_File(self.temp['file'])
@@ -176,21 +213,27 @@ class SingleFile(BoxLayout):
         self._popup.dismiss()
 
     def save_csv(self, path, filename):
+        if filename == '':
+            filename = self.temp['name']
         filepath = path + "/" + filename + ".csv"
         self.data.to_csv(filepath, sep=';')
-        self.dismiss_popup()
+        # self.ids.saveBtnCSV.disabled = False
+        # self.dismiss_popup()
 
     def save_bat(self, path, filename):
         symb = "\ "
+        if filename == '':
+            filename = self.temp['name']
         if (path[-1] != symb[0]) or (path[-1] != '/'):
             path += symb[0]
         origin_path = create_blank_db(path)
         add_weightings_table(path)
-        add_file_table(path, 0)
+        add_file_table(path, 0, filename)
         for data in self.temp_arr:
-            add_samples_table(path, data['WeighingId'], data['Weight'] / 1000.0, data['Flag'], get_julian_datetime(datetime.datetime.fromtimestamp(data['SavedDateTime'], tz=ZoneInfo("Europe/London"))))
+            add_samples_table(path, data['WeighingId'], data['Weight'] / 1000.0, data['Flag'], get_julian_datetime(datetime.datetime.fromtimestamp(data['SavedDateTime']).astimezone(TIMEZONE)))
         save_db_in_file(path, filename, origin_path)
-        self.dismiss_popup()
+        # self.ids.saveBtnBAT.disabled = False
+        # self.dismiss_popup()
     
 
 class SaveDialog(FloatLayout):
