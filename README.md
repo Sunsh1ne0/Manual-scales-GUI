@@ -8,10 +8,10 @@ python -m venv <name>
 
 ## Install the requirements:
 ```bash
-pip install -r requirements.txt
+pip install -r 'requirements tkinter.txt'
 ```
 
 ## Start the GUI:
 ```bash
-python main.py
+python main_tkinter.py
 ```

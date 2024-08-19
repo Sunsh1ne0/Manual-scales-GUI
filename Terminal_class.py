@@ -107,7 +107,7 @@ class arduino(P2P):
                 None
             else:
                 id = 1 if (data < 0) else 0
-                flag = 1 if abs(data) < medium_limit else (2 if abs(data) < heavy_limit else 3)
+                flag = 1 if abs(data) <= medium_limit else (2 if abs(data) <= heavy_limit else 3)
                 message = {'ID': count + 1, 'WeighingId': id, 'Weight': abs(data), 'Flag': flag, 'SavedDateTime': unix}
                 _messages.append(message)
 

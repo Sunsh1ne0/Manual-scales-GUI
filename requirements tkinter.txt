@@ -1,0 +1,8 @@
+pandas
+pyserial
+pyuac
+pywin32
+numpy
+pyinstaller==5.13.2
+backports.zoneinfo
+tzdata
