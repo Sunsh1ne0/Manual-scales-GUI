@@ -15,6 +15,12 @@ except ImportError:
 from Terminal_class import arduino
 from db import create_blank_db, add_file_table, add_samples_table, add_weightings_table, get_julian_datetime, save_db_in_file
 import pyuac
+import locale
+
+current_locale = locale.getdefaultlocale()
+
+language = current_locale[0].split('_')[0] 
+
 
 TIMEZONE = ZoneInfo("Iceland")
 # bg_color_app = "#daffc2"
@@ -88,20 +94,20 @@ class MainScreen(tk.Frame):
         self.top_frame_btn1 = ttk.Label(self.top_frame, anchor='w', background=bg_color_app)
         self.top_frame_btn1.pack(side=tk.LEFT, expand=True, fill=tk.X)
 
-        self.connect_button = ttk.Button(self.top_frame_btn1, text="Подключить весы", command=self.connect_bat, style="My.TButton", width=18)
+        self.connect_button = ttk.Button(self.top_frame_btn1, text=text_lang("Подключить весы", "Connect to scales", language), command=self.connect_bat, style="My.TButton", width=18)
         self.connect_button.pack(side=tk.LEFT, padx=5, expand=True)
 
         self.top_frame_btn2 = ttk.Label(self.top_frame, anchor='w', background=bg_color_app)
         self.top_frame_btn2.pack(side=tk.LEFT, expand=True, fill=tk.X)
 
-        self.date_time_button = ttk.Button(self.top_frame_btn2, text="Установить время", command=self.set_time, style="My.TButton", width=18)
+        self.date_time_button = ttk.Button(self.top_frame_btn2, text=text_lang("Установить время", "Set time", language), command=self.set_time, style="My.TButton", width=18)
         self.date_time_button.pack(side=tk.LEFT, padx=5, expand=True)
         self.date_time_button.config(state=tk.DISABLED)
 
         self.top_frame_label = ttk.Label(self.top_frame, anchor='w', background=bg_color_app)
         self.top_frame_label.pack(side=tk.LEFT, expand=True, fill=tk.X)
 
-        self.is_connected_label = ttk.Label(self.top_frame_label, text="Весы не подключены", anchor='center', style="My.TLabel", width=28)
+        self.is_connected_label = ttk.Label(self.top_frame_label, text=text_lang("Весы не подключены", "Scales are not connected", language), anchor='center', style="My.TLabel", width=28)
         self.is_connected_label.pack(expand=True)
 
         self.middle_frame = tk.Frame(self.main_layout, pady=10, background=bg_color_app)
@@ -168,13 +174,13 @@ class MainScreen(tk.Frame):
         
     def connect_bat(self):
         def on_entry_click(event):
-            if text_space.get() == "Введите пароль":
+            if text_space.get() == text_lang("Введите пароль", "Enter the password", language):
                 text_space.delete(0, tk.END)
                 text_space.configure(foreground="black")
 
         def on_focus_out(event):
             if text_space.get() == "":
-                text_space.insert(0, "Введите пароль")
+                text_space.insert(0, text_lang("Введите пароль", "Enter the password", language))
                 text_space.configure(foreground="gray")
 
         try:
@@ -201,22 +207,22 @@ class MainScreen(tk.Frame):
                                     # padding=10,             # отступы
                                     background=bg_color_grey)   # фоновый цвет
                 grid = tk.Frame(self.box_text, pady=10, bg=bg_color_grey)
-                self.is_connected_label.config(text="Необходима разблокировка")
+                self.is_connected_label.config(text=text_lang("Необходима разблокировка", "Unlocking is required", language))
                 self.connect_button.config(state=tk.DISABLED)
-                self.connect_button.config(state=tk.NORMAL, text="Отключить весы", command=self.disconnect_bat)
+                self.connect_button.config(state=tk.NORMAL, text=text_lang("Отключить весы", "Disconnect scales", language), command=self.disconnect_bat)
                 grid.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
                 text_space = ttk.Entry(grid, foreground="gray")
-                text_space.insert(0, "Введите пароль")
+                text_space.insert(0, text_lang("Введите пароль", "Enter the password", language))
 
                 text_space.bind("<FocusIn>", on_entry_click)
                 text_space.bind("<FocusOut>", on_focus_out)
                 text_space.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
-                unblock_btn = ttk.Button(grid, text="Разблокировать", command=lambda: self.unblock_cmd(text_space.get()), style="Unblock.TButton")
+                unblock_btn = ttk.Button(grid, text=text_lang("Разблокировать", "Unlock", language), command=lambda: self.unblock_cmd(text_space.get()), style="Unblock.TButton")
                 unblock_btn.pack(side=tk.LEFT, padx=5)
             else:
-                self.is_connected_label.config(text="Весы подключены", foreground="#004D40")
+                self.is_connected_label.config(text=text_lang("Весы подключены", "Scales are connected", language), foreground="#004D40")
                 # self.connect_button.config(state=tk.DISABLED)
-                self.connect_button.config(state=tk.NORMAL, text="Отключить весы", command=self.disconnect_bat)
+                self.connect_button.config(state=tk.NORMAL, text=text_lang("Отключить весы", "Disconnect", language), command=self.disconnect_bat)
                 self.date_time_button.config(state=tk.NORMAL)
 
                 if self.files_amount != 0:
@@ -229,15 +235,15 @@ class MainScreen(tk.Frame):
                 else:
                     for widget in self.box_text.winfo_children():
                         widget.destroy()
-                    text_space = ttk.Label(self.box_text, text="Нет файлов", background=bg_color_light)
+                    text_space = ttk.Label(self.box_text, text=text_lang("Нет файлов", "No files", language), background=bg_color_light)
                     text_space.pack(pady=10)
         except SerialException:
-            self.is_connected_label.config(text="Весы не обнаружены")
+            self.is_connected_label.config(text=text_lang("Весы не обнаружены", "Scales are not found", language))
 
     def disconnect_bat(self):
         self.ard.close_com_port()
-        self.is_connected_label.config(text="Весы отключены", foreground="#000000")
-        self.connect_button.config(state=tk.NORMAL, text="Подключить весы", command=self.connect_bat)
+        self.is_connected_label.config(text=text_lang("Весы отключены", "Scales are disconnected", language), foreground="#000000")
+        self.connect_button.config(state=tk.NORMAL, text=text_lang("Подключить весы", "Connect to scales", language), command=self.connect_bat)
         self.date_time_button.config(state=tk.DISABLED)
         for widget in self.box_text.winfo_children():
             widget.destroy()
@@ -260,11 +266,11 @@ class MainScreen(tk.Frame):
                                 padding=10, background=bg_color_app)
 
 
-            ttk.Label(self.box_text, text="Весы успешно разблокированы", style="Unblosck.TLabel").pack(pady=10)
+            ttk.Label(self.box_text, text=text_lang("Весы успешно разблокированы", "Scales were unlocked successfully", language), style="Unblosck.TLabel").pack(pady=10)
 
     def set_time(self):
         print(self.ard.Set_Time())
-        messagebox.showinfo("Time set", f"Time has been successfully set")
+        messagebox.showinfo("Time set", text_lang(f"Время успешно установлено", f"Time has been successfully set", language))
 
 class SingleFile(tk.Frame):
     def __init__(self, master, data, arduino, main_window, **kwargs):
@@ -289,13 +295,13 @@ class SingleFile(tk.Frame):
                             foreground="#000000",   # цвет текста
                             padding=10, background=bg_color_dark)
         
-        save_btn_bat = ttk.Button(self, text="Скачать BAT", command=self.on_click_bat, style="Main.TButton", width=11)
+        save_btn_bat = ttk.Button(self, text=text_lang("Скачать BAT", "Save BAT", language), command=self.on_click_bat, style="Main.TButton", width=11)
         save_btn_bat.pack(side=tk.LEFT, padx=5, pady=5, expand=False)
 
-        save_btn_csv = ttk.Button(self, text="Скачать csv", command=self.on_click_csv, style="Main.TButton", width=11)
+        save_btn_csv = ttk.Button(self, text=text_lang("Скачать csv", "Save csv", language), command=self.on_click_csv, style="Main.TButton", width=11)
         save_btn_csv.pack(side=tk.LEFT, padx=5, pady=5, expand=False)
 
-        delete_btn = ttk.Button(self, text="Удалить", command=self.delete_file, style="Main.TButton", width=11)
+        delete_btn = ttk.Button(self, text=text_lang("Удалить", "Delete", language), command=self.delete_file, style="Main.TButton", width=11)
         delete_btn.pack(side=tk.LEFT, padx=5, pady=5, expand=False)
 
         file_label = ttk.Label(self, text=f"File: {self.data['name']}, Weightings: {self.data['lines'] - 2}, Time: {datetime.fromtimestamp(self.data['unix']).astimezone(TIMEZONE)}", style="Main.TLabel", width=50)
@@ -342,11 +348,12 @@ class SingleFile(tk.Frame):
             filename = self.data['name']
         filepath = os.path.join(path, filename + ".csv")
         self.df.to_csv(filepath, sep=';')
-        messagebox.showinfo("Save CSV", f"CSV file saved to {filepath}")
+        messagebox.showinfo("Save CSV", text_lang(f"CSV файл сохранен в {filepath}", f"CSV file saved to {filepath}", language))
 
     def save_bat(self, path, filename):
         if filename == '':
             filename = self.data['name']
+        filepath = os.path.join(path, filename + ".bat")
         if not path.endswith(("\\", "/")):
             path += "\\"
         origin_path = create_blank_db(path)
@@ -355,7 +362,7 @@ class SingleFile(tk.Frame):
         for data in self.temp_arr:
             add_samples_table(path, data['WeighingId'], data['Weight'] / 1000.0, data['Flag'], get_julian_datetime(datetime.fromtimestamp(data['SavedDateTime']).astimezone(TIMEZONE)))
         save_db_in_file(path, filename, origin_path)
-        messagebox.showinfo("Save BAT", f"BAT file saved to {os.path.join(path, filename)}")
+        messagebox.showinfo("Save BAT", text_lang(f"BAT файл сохранен в {filepath}", f"BAT file saved to {filepath}", language))
 
 def main():
     root = tk.Tk()
@@ -367,6 +374,12 @@ def main():
 
     app = MainScreen(master=root)
     app.mainloop()
+
+def text_lang(text_ru, text_eng, lang):
+    if lang == "ru":
+        return text_ru
+    else:
+        return text_eng
 
 if __name__ == "__main__":
     # if not pyuac.isUserAdmin():
